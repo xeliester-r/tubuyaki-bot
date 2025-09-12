@@ -5,6 +5,12 @@ Created on 2025/09/13
 '''
 import discord
 from discord.ext import commands
+import os
+from dotenv import load_dotenv  # ← 追加
+
+# .envからトークンを読み込む
+load_dotenv()
+TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
 # インテント設定（メッセージ内容とメンバー情報を取得可能に）
 intents = discord.Intents.default()
@@ -40,4 +46,4 @@ async def rp(ctx):
     await ctx.send("RPつぶやきを入力してください", view=RPView())
 
 # Bot起動（トークンを貼り付け済みならこのままでOK）
-bot.run("MTQxNjA1NjE2MTE2NTExOTU0MQ.G1Fjmq.Q2_feSg9ijHIBZ1m7aqDduui40FkYQDFT_kYLw")
+bot.run(TOKEN)
