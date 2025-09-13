@@ -55,7 +55,7 @@ class RPView(discord.ui.View):
     async def on_timeout(self):
         try:
             await self.original_message.edit(
-                content="キャラやRPについてつぶやこう！",
+                content="今の気持ちや想い、少し語ってみませんか？",
                 view=RPView(self.original_message)
             )
         except Exception as e:
@@ -65,7 +65,7 @@ class RPView(discord.ui.View):
 @bot.command()
 async def rp(ctx):
     # 最初は仮のViewを送信（Noneを渡す）
-    message = await ctx.send("キャラやRPについてつぶやこう！", view=RPView(None))
+    message = await ctx.send("今の気持ちや想い、少し語ってみませんか？", view=RPView(None))
     # 送信後に、Viewにメッセージを渡して再設定
     await message.edit(view=RPView(message))
 
