@@ -46,7 +46,6 @@ class RPModal(discord.ui.Modal):
 class RPView(discord.ui.View):
     def __init__(self, original_message):
         super().__init__(timeout=900)
-        
         self.original_message = original_message
 
     @discord.ui.button(label="つぶやく", style=discord.ButtonStyle.primary, custom_id="rpbutton")
@@ -66,7 +65,7 @@ class RPView(discord.ui.View):
 @bot.command()
 async def rp(ctx):
     # 最初は仮のViewを送信（Noneを渡す）
-    message = await ctx.send("キャラやRPについてつぶやこう！", view=RPView())
+    message = await ctx.send("キャラやRPについてつぶやこう！", view=RPView(None))
     # 送信後に、Viewにメッセージを渡して再設定
     await message.edit(view=RPView(message))
 
