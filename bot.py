@@ -90,6 +90,8 @@ async def rp(ctx):
 async def on_message(message):
     await bot.process_commands(message)  # コマンド処理を忘れずに
 
+    print(f"[on_message] author={message.author} | id={message.id} | content={message.content}")
+
     if message.author.bot:
         return
     if message.content.startswith("!rp"):
