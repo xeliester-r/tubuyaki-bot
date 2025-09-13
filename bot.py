@@ -109,7 +109,9 @@ async def on_message(message):
             else:
                 print(f"[削除不可] message_id={old_msg.id} は削除できません")
         except Exception as e:
+            import traceback
             print(f"案内文削除エラー: {e}")
+            traceback.print_exc()
 
         new_msg = await message.channel.send(
             get_prompt(),
