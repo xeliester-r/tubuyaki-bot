@@ -78,7 +78,6 @@ async def rp(ctx):
     # 最初は仮のViewを送信（Noneを渡す）
     message = await ctx.send(
         get_prompt(),
-        view=RPView(None),
         allowed_mentions=discord.AllowedMentions.none()
     )
     # 送信後に、Viewにメッセージを渡して再設定
