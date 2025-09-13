@@ -90,7 +90,8 @@ async def on_message(message):
 
     if message.author.bot:
         return
-
+    if message.content.startswith("!rp"):
+        return
     if message.channel.id in latest_rp_message:
         try:
             old_msg = latest_rp_message[message.channel.id]
