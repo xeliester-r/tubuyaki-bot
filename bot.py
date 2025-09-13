@@ -66,7 +66,7 @@ class RPView(discord.ui.View):
 @bot.command()
 async def rp(ctx):
     # 最初は仮のViewを送信（Noneを渡す）
-    await ctx.send("キャラやRPについてつぶやこう！", view=RPView())
+    message = await ctx.send("キャラやRPについてつぶやこう！", view=RPView())
     # 送信後に、Viewにメッセージを渡して再設定
     await message.edit(view=RPView(message))
 
