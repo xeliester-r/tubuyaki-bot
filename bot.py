@@ -103,7 +103,11 @@ async def on_message(message):
     if message.channel.id in latest_rp_message:
         try:
             old_msg = latest_rp_message[message.channel.id]
-            await old_msg.delete()
+            print(f"[削除対象] message_id={old_msg.id} | content={old_msg.content}")
+            if old_msg.deletable:
+                await old_msg.delete()
+            else:
+                print(f"[削除不可] message_id={old_msg.id} は削除できません")
         except Exception as e:
             print(f"案内文削除エラー: {e}")
 
