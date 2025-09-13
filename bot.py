@@ -44,13 +44,32 @@ class RPModal(discord.ui.Modal):
         await interaction.response.defer(ephemeral=True)
 
 class RPView(discord.ui.View):
-    @discord.ui.button(label="入力", style=discord.ButtonStyle.primary, custom_id="rpbutton")
+    def __init__(self, original_message):
+        super().__init__(timeout=900)
+        
+        self.original_message = original_message
+
+    @discord.ui.button(label="つぶやく", style=discord.ButtonStyle.primary, custom_id="rpbutton")
     async def rp_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(RPModal())
 
+    async def on_timeout(self):
+        try:
+            await self.original_message.edit(
+                content="キャラやRPについてつぶやこう！",
+                view=RPView(self.original_message)
+            )
+        except Exception as e:
+            print(f"再表示エラー: {e}")
+
+
 @bot.command()
 async def rp(ctx):
-    await ctx.send("RPつぶやきを入力してください", view=RPView())
+    # 最初は仮のViewを送信（Noneを渡す）
+    await ctx.send("キャラやRPについてつぶやこう！", view=RPView())
+    # 送信後に、Viewにメッセージを渡して再設定
+    await message.edit(view=RPView(message))
+
 
 # 並列起動
 if __name__ == "__main__":
