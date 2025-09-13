@@ -40,6 +40,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 latest_rp_message = {}  # チャンネルIDごとに案内文を記録
+latest_rp_message_id = {}  # チャンネルIDごとに案内文のIDを記録
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 class RPModal(discord.ui.Modal):
@@ -92,6 +93,9 @@ async def on_message(message):
         return
     if message.content.startswith("!rp"):
         return
+    if message.channel.id in latest_rp_message_id:
+        if message.id == latest_rp_message_id[message.channel.id]:
+            return
     if message.channel.id in latest_rp_message:
         try:
             old_msg = latest_rp_message[message.channel.id]
@@ -106,6 +110,8 @@ async def on_message(message):
         )
         await new_msg.edit(view=RPView(new_msg))
         latest_rp_message[message.channel.id] = new_msg
+        latest_rp_message_id[message.channel.id] = new_msg.id
+
 
 # 並列起動
 if __name__ == "__main__":
