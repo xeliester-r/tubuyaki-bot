@@ -84,6 +84,7 @@ async def rp(ctx):
     # 送信後に、Viewにメッセージを渡して再設定
     await message.edit(view=RPView(message))
     latest_rp_message[ctx.channel.id] = message
+    latest_rp_message_id[ctx.channel.id] = message.id
     
 @bot.event
 async def on_message(message):
@@ -111,7 +112,6 @@ async def on_message(message):
         await new_msg.edit(view=RPView(new_msg))
         latest_rp_message[message.channel.id] = new_msg
         latest_rp_message_id[message.channel.id] = new_msg.id
-
 
 # 並列起動
 if __name__ == "__main__":
