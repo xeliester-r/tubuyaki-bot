@@ -97,6 +97,7 @@ async def on_message(message):
     if message.channel.id in latest_rp_message_id:
         if message.id == latest_rp_message_id[message.channel.id]:
             return
+    await asyncio.sleep(0.2)
     if message.channel.id in latest_rp_message:
         try:
             old_msg = latest_rp_message[message.channel.id]
