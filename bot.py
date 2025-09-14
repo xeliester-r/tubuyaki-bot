@@ -65,6 +65,12 @@ async def rp(ctx):
         allowed_mentions=discord.AllowedMentions.none()
     )
 
+@bot.command()
+async def rpclear(ctx):
+    global target_channel_id
+    target_channel_id = None
+    await ctx.send("対象チャンネル設定を解除しました。")
+
 @bot.event
 async def on_message(message):
     await bot.process_commands(message)
