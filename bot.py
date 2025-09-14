@@ -73,6 +73,8 @@ async def on_message(message):
         return
     if target_channel_id is None or message.channel.id != target_channel_id:
         return
+    if message.content.startswith("!rp"):
+        return
     await message.channel.send(
         "今の気持ちや想い、少し語ってみませんか？",
         view=RPView(),
