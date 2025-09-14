@@ -38,7 +38,8 @@ class RPModal(discord.ui.Modal):
         global last_prompt_message
 
         embed = discord.Embed(description=self.input.value, color=discord.Color.purple())
-        embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.avatar.url)
+        avatar_url = interaction.user.avatar.url if interaction.user.avatar else None
+        embed.set_author(name=interaction.user.display_name, icon_url=avatar_url)
         await interaction.channel.send(embed=embed, view=ReplyView(embed, interaction.user))
         await interaction.response.defer(ephemeral=True)
 
@@ -68,7 +69,8 @@ class ReplyModal(discord.ui.Modal):
             description=self.input.value,
             color=discord.Color.blue()
         )
-        reply_embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.avatar.url)
+        avatar_url = interaction.user.avatar.url if interaction.user.avatar else None
+        reply_embed.set_author(name=interaction.user.display_name, icon_url=avatar_url)
         reply_embed.add_field(
             name="返信先",
             value=f"{self.original_user.display_name}: {self.original_embed.description}",
