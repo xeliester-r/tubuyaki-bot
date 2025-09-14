@@ -36,10 +36,10 @@ class RPModal(discord.ui.Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         global last_prompt_message
-        
+
         embed = discord.Embed(description=self.input.value, color=discord.Color.purple())
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.avatar.url)
-        await interaction.channel.send(embed=embed)
+        await interaction.channel.send(embed=embed, view=ReplyView(embed, interaction.user.display_name))
         await interaction.response.defer(ephemeral=True)
 
         if last_prompt_message:
@@ -48,12 +48,32 @@ class RPModal(discord.ui.Modal):
             except discord.NotFound:
                 pass
 
-        # 案内文を再投稿
         last_prompt_message = await interaction.channel.send(
             "今の気持ちや想い、少し語ってみませんか？",
             view=RPView(),
             allowed_mentions=discord.AllowedMentions.none()
         )
+
+
+class ReplyModal(discord.ui.Modal):
+    def __init__(self, original_embed: discord.Embed, original_author: str):
+        super().__init__(title="RP返信")
+        self.input = discord.ui.TextInput(label="返信内容", style=discord.TextStyle.short)
+        self.original_embed = original_embed
+        self.original_author = original_author
+        self.add_item(self.input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        reply_embed = discord.Embed(
+            description=self.input.value,
+            color=discord.Color.blue()
+        )
+        reply_embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.avatar.url)
+        reply_embed.add_field(name="返信先", value=f"{self.original_author}: {self.original_embed.description}", inline=False)
+
+        await interaction.channel.send(embed=reply_embed)
+        await interaction.response.defer(ephemeral=True)
+
 
 class RPView(discord.ui.View):
     def __init__(self):
@@ -62,6 +82,17 @@ class RPView(discord.ui.View):
     @discord.ui.button(label="つぶやく", style=discord.ButtonStyle.primary, custom_id="rpbutton")
     async def rp_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(RPModal())
+
+class ReplyView(discord.ui.View):
+    def __init__(self, original_embed: discord.Embed, original_author: str):
+        super().__init__(timeout=None)
+        self.original_embed = original_embed
+        self.original_author = original_author
+
+    @discord.ui.button(label="返信する", style=discord.ButtonStyle.secondary, custom_id="replybutton")
+    async def reply_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(ReplyModal(self.original_embed, self.original_author))
+
 
 @bot.command()
 async def rp(ctx):
