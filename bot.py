@@ -102,53 +102,48 @@ class ReplyModal(discord.ui.Modal):
             color = discord.Color.orange()
         else:
             color = discord.Color.blue()
-        
+
+        # ❶ Embed構築（返信）
         reply_embed = discord.Embed(
-            description=f"🗨️ {self.original_user.display_name}: {self.original_embed.description}",
+            description=f"↳ {self.original_embed.description}",
             color=color
         )
         avatar_url = interaction.user.avatar.url if interaction.user.avatar else None
         reply_embed.set_author(name=interaction.user.display_name, icon_url=avatar_url)
+        reply_embed.add_field(name="返信", value=f"↳ {self.input.value}", inline=False)
 
-        reply_embed.add_field(
-            name="返信",
-            value=self.input.value,
-            inline=False
+        # ❷ 通常チャンネルに返信を送信
+        await interaction.channel.send(
+            content=f"{self.original_user.mention}",
+            embed=reply_embed,
+            view=ReplyView(reply_embed, interaction.user)
         )
 
-        # 履歴記録
-        pair = tuple(sorted([interaction.user.id, self.original_user.id]))
-        now = time.time()
-
-        # 条件判定
+        # スレッド化条件判定
         should_thread_by_time = len(reply_history[pair]) >= REPLY_THRESHOLD
-        # 条件②：静かな空間での連続返信（新規）
         should_thread_by_isolation = (
             len(reply_history[pair]) >= 10 and
             await no_other_activity_in_channel(interaction.channel, pair)
         )
-        # 最終判定：どちらかが成立したらスレッド化
         should_thread = should_thread_by_time or should_thread_by_isolation
 
         if should_thread:
+            # ❸ スレッド作成
             thread = await interaction.channel.create_thread(
                 name=f"RP会話：{interaction.user.display_name}↔{self.original_user.display_name}",
                 type=discord.ChannelType.public_thread,
                 auto_archive_duration=60
             )
-            await thread.send(
-                content="会話が盛り上がってたから、こっそり専用スレッド作ったよ。 \nここはふたりの秘密基地ってことで。続き、楽しみにしてるね！",
-                allowed_mentions=discord.AllowedMentions.none()
-            )
 
+            # ❹ 履歴投稿（時系列順）
             for entry in sorted(reply_history[pair], key=lambda x: x["timestamp"]):
                 embed = discord.Embed(
-                    description=f"🗨️ {entry['original_user'].display_name}: {entry['original_embed'].description}",
+                    description=f"↳ {entry['original_embed'].description}",
                     color=color
                 )
                 avatar_url = entry["author"].avatar.url if entry["author"].avatar else None
                 embed.set_author(name=entry["author"].display_name, icon_url=avatar_url)
-                embed.add_field(name="返信", value=entry["content"], inline=False)
+                embed.add_field(name="返信", value=f"↳ {entry['content']}", inline=False)
 
                 await thread.send(
                     content=f"{entry['original_user'].mention}",
@@ -156,16 +151,18 @@ class ReplyModal(discord.ui.Modal):
                     view=ReplyView(embed, entry["author"])
                 )
 
-            await thread.add_user(self.original_user)
-            await thread.add_user(interaction.user)
-        else:
-            await interaction.channel.send(
-                content=f"{self.original_user.mention}",
-                embed=reply_embed,
-                view=ReplyView(reply_embed, interaction.user)
+            # ❺ Botの案内文（1回だけ）
+            await thread.send(
+                content=f"{interaction.user.mention} {self.original_user.mention}\n会話が盛り上がってたから、こっそり専用スレッド作ったよ。\nここはふたりの秘密基地ってことで。続き、楽しみにしてるね！",
+                allowed_mentions=discord.AllowedMentions(users=True)
             )
 
+            await thread.add_user(self.original_user)
+            await thread.add_user(interaction.user)
+
         await interaction.response.defer(ephemeral=True)
+
+        # 案内メッセージ更新
         global last_prompt_message
         if last_prompt_message:
             try:
@@ -178,6 +175,7 @@ class ReplyModal(discord.ui.Modal):
             view=RPView(),
             allowed_mentions=discord.AllowedMentions.none()
         )
+
 
 
 class RPView(discord.ui.View):
