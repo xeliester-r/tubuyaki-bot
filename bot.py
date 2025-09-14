@@ -64,7 +64,7 @@ class RPModal(discord.ui.Modal):
         avatar_url = interaction.user.avatar.url if interaction.user.avatar else None
         embed.set_author(name=interaction.user.display_name, icon_url=avatar_url)
         await interaction.channel.send(embed=embed, view=ReplyView(embed, interaction.user))
-        await interaction.response.send_message(content=None, ephemeral=True)
+        await interaction.response.send_message(content="送ったよ！", ephemeral=True)
 
         channel_id = interaction.channel.id
         if last_prompt_messages.get(channel_id):
