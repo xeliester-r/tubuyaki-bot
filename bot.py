@@ -9,6 +9,8 @@ from collections import defaultdict
 import time
 
 reply_history = defaultdict(list)  # key: (user1_id, user2_id), value: list of dicts
+target_channel_ids = {}         # key: guild.id, value: channel.id
+last_prompt_messages = {}       # key: guild.id, value: message
 REPLY_WINDOW = 1200  # 秒（例：20分）
 REPLY_THRESHOLD = 6  # 回数（例：6回以上）
 
@@ -82,10 +84,13 @@ class ReplyModal(discord.ui.Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         # 履歴記録
-        pair = tuple(sorted([interaction.user.id, self.original_user.id]))
+        guild_id = interaction.guild.id
         now = time.time()
-        reply_history[pair] = [r for r in reply_history[pair] if now - r["timestamp"] < REPLY_WINDOW]
-        reply_history[pair].append({
+        pair = tuple(sorted([interaction.user.id, self.original_user.id]))
+        reply_history[(guild_id, *pair)] = [
+            r for r in reply_history[(guild_id, *pair)] if now - r["timestamp"] < REPLY_WINDOW
+        ]
+        reply_history[(guild_id, *pair)].append({
             "timestamp": now,
             "author": interaction.user,
             "content": self.input.value,
@@ -93,7 +98,7 @@ class ReplyModal(discord.ui.Modal):
             "original_embed": self.original_embed
         })
 
-        reply_count = len(reply_history[pair])
+        reply_count = len(reply_history[(guild_id, *pair)])
 
         # 色判定
         if reply_count >= 10:
@@ -120,11 +125,12 @@ class ReplyModal(discord.ui.Modal):
         )
 
         # スレッド化条件判定
-        should_thread_by_time = len(reply_history[pair]) >= REPLY_THRESHOLD
+        should_thread_by_time = len(reply_history[(guild_id, *pair)]) >= REPLY_THRESHOLD
         should_thread_by_isolation = (
-            len(reply_history[pair]) >= 10 and
+            len(reply_history[(guild_id, *pair)]) >= 10 and
             await no_other_activity_in_channel(interaction.channel, pair)
         )
+
         should_thread = should_thread_by_time or should_thread_by_isolation
 
         if should_thread:
@@ -136,7 +142,7 @@ class ReplyModal(discord.ui.Modal):
             )
 
             # ❹ 履歴投稿（時系列順）
-            for entry in sorted(reply_history[pair], key=lambda x: x["timestamp"]):
+            for entry in sorted(reply_history[(guild_id, *pair)], key=lambda x: x["timestamp"]):
                 embed = discord.Embed(
                     description=f"↳ {entry['original_embed'].description}",
                     color=color
@@ -199,10 +205,10 @@ class ReplyView(discord.ui.View):
 
 @bot.command()
 async def rp(ctx):
-    global target_channel_id, last_prompt_message
-    target_channel_id = ctx.channel.id  # 実行されたチャンネルを記録
+    guild_id = ctx.guild.id
+    target_channel_ids[guild_id] = ctx.channel.id  # 実行されたチャンネルを記録
     
-    last_prompt_message = await ctx.send(
+    last_prompt_messages[guild_id] = await ctx.send(
         "今の気持ちや想い、少し語ってみませんか？",
         view=RPView(),
         allowed_mentions=discord.AllowedMentions.none()
@@ -210,8 +216,9 @@ async def rp(ctx):
 
 @bot.command()
 async def rpclear(ctx):
-    global target_channel_id
-    target_channel_id = None
+    guild_id = ctx.guild.id
+    target_channel_ids.pop(guild_id, None)
+    last_prompt_messages.pop(guild_id, None)
     await ctx.send("対象チャンネル設定を解除しました。")
 
 @bot.event
@@ -220,22 +227,27 @@ async def on_message(message):
 
     if message.author.bot:
         return
-    if target_channel_id is None or message.channel.id != target_channel_id:
+
+    guild_id = message.guild.id
+    if guild_id not in target_channel_ids:
+        return
+    if message.channel.id != target_channel_ids[guild_id]:
         return
     if message.content.startswith("!rp"):
         return
 
-    global last_prompt_message
-    if last_prompt_message:
+    if last_prompt_messages.get(guild_id):
         try:
-            await last_prompt_message.delete()
+            await last_prompt_messages[guild_id].delete()
         except discord.NotFound:
             pass
-    last_prompt_message = await message.channel.send(
+
+    last_prompt_messages[guild_id] = await message.channel.send(
         "今の気持ちや想い、少し語ってみませんか？",
         view=RPView(),
         allowed_mentions=discord.AllowedMentions.none()
     )
+
 
 # 並列起動（Flask + Discord Bot）
 if __name__ == "__main__":
