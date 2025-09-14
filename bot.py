@@ -37,6 +37,13 @@ class RPModal(discord.ui.Modal):
         await interaction.channel.send(embed=embed)
         await interaction.response.defer(ephemeral=True)
 
+        # 案内文を再投稿
+        await interaction.channel.send(
+            "今の気持ちや想い、少し語ってみませんか？",
+            view=RPView(),
+            allowed_mentions=discord.AllowedMentions.none()
+        )
+
 class RPView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)  # 無効化されないように timeout を無効化
