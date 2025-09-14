@@ -174,8 +174,6 @@ class ReplyModal(discord.ui.Modal):
             await thread.add_user(self.original_user)
             await thread.add_user(interaction.user)
 
-        await interaction.response.defer(ephemeral=True)
-
         # スレッド化条件の判定・実行
         # スレッド化の有無に関係なく、案内メッセージは元のチャンネルに送る
         target_channel = original_channel.parent if isinstance(original_channel, discord.Thread) else original_channel
