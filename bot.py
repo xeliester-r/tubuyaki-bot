@@ -42,6 +42,11 @@ async def no_other_activity_in_channel(channel, pair):
             return False
     return True
 
+def is_channel_isolated(channel_id, pair):
+    history = reply_history.get((channel_id, *pair), [])
+    authors = set(entry["author"].id for entry in history)
+    return authors.issubset(set(pair))
+
 # ❶ 対象チャンネルIDの記録用（初期値は未設定）
 target_channel_id = None
 last_prompt_message = None
@@ -129,7 +134,7 @@ class ReplyModal(discord.ui.Modal):
         should_thread_by_time = reply_count >= REPLY_THRESHOLD
         should_thread_by_isolation = (
             reply_count >= 10 and
-            await no_other_activity_in_channel(interaction.channel, pair)
+            is_channel_isolated(channel_id, pair)
         )
 
         should_thread = should_thread_by_time or should_thread_by_isolation
@@ -170,14 +175,15 @@ class ReplyModal(discord.ui.Modal):
         await interaction.response.defer(ephemeral=True)
 
         # 案内メッセージ更新
-        channel_id = interaction.channel.id
-        if last_prompt_messages.get(channel_id):
+        original_channel = interaction.channel.parent if isinstance(interaction.channel, discord.Thread) else interaction.channel
+        # スレッド化後でも、案内メッセージは元のチャンネルに送る
+        if last_prompt_messages.get(original_channel.id):
             try:
-                await last_prompt_messages[channel_id].delete()
+                await last_prompt_messages[original_channel.id].delete()
             except discord.NotFound:
                 pass
 
-        last_prompt_messages[channel_id] = await interaction.channel.send(
+        last_prompt_messages[original_channel.id] = await original_channel.send(
             "今の気持ちや想い、少し語ってみませんか？",
             view=RPView(),
             allowed_mentions=discord.AllowedMentions.none()
