@@ -26,6 +26,7 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 # ❶ 対象チャンネルIDの記録用（初期値は未設定）
 target_channel_id = None
+last_prompt_message = None
 
 class RPModal(discord.ui.Modal):
     def __init__(self):
@@ -34,13 +35,21 @@ class RPModal(discord.ui.Modal):
         self.add_item(self.input)
 
     async def on_submit(self, interaction: discord.Interaction):
+        global last_prompt_message
+        
         embed = discord.Embed(description=self.input.value, color=discord.Color.purple())
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.avatar.url)
         await interaction.channel.send(embed=embed)
         await interaction.response.defer(ephemeral=True)
 
+        if last_prompt_message:
+            try:
+                await last_prompt_message.delete()
+            except discord.NotFound:
+                pass
+
         # 案内文を再投稿
-        await interaction.channel.send(
+        last_prompt_message = await interaction.channel.send(
             "今の気持ちや想い、少し語ってみませんか？",
             view=RPView(),
             allowed_mentions=discord.AllowedMentions.none()
@@ -56,10 +65,10 @@ class RPView(discord.ui.View):
 
 @bot.command()
 async def rp(ctx):
-    global target_channel_id
+    global target_channel_id, last_prompt_message
     target_channel_id = ctx.channel.id  # 実行されたチャンネルを記録
     
-    await ctx.send(
+    last_prompt_message = await ctx.send(
         "今の気持ちや想い、少し語ってみませんか？",
         view=RPView(),
         allowed_mentions=discord.AllowedMentions.none()
@@ -81,7 +90,14 @@ async def on_message(message):
         return
     if message.content.startswith("!rp"):
         return
-    await message.channel.send(
+
+    global last_prompt_message
+    if last_prompt_message:
+        try:
+            await last_prompt_message.delete()
+        except discord.NotFound:
+            pass
+    last_prompt_message = await message.channel.send(
         "今の気持ちや想い、少し語ってみませんか？",
         view=RPView(),
         allowed_mentions=discord.AllowedMentions.none()
