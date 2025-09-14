@@ -24,6 +24,8 @@ def run_flask():
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
+# ❶ 対象チャンネルIDの記録用（初期値は未設定）
+target_channel_id = None
 
 class RPModal(discord.ui.Modal):
     def __init__(self):
@@ -54,7 +56,24 @@ class RPView(discord.ui.View):
 
 @bot.command()
 async def rp(ctx):
+    global target_channel_id
+    target_channel_id = ctx.channel.id  # 実行されたチャンネルを記録
+    
     await ctx.send(
+        "今の気持ちや想い、少し語ってみませんか？",
+        view=RPView(),
+        allowed_mentions=discord.AllowedMentions.none()
+    )
+
+@bot.event
+async def on_message(message):
+    await bot.process_commands(message)
+
+    if message.author.bot:
+        return
+    if target_channel_id is None or message.channel.id != target_channel_id:
+        return
+    await message.channel.send(
         "今の気持ちや想い、少し語ってみませんか？",
         view=RPView(),
         allowed_mentions=discord.AllowedMentions.none()
