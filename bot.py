@@ -39,7 +39,7 @@ class RPModal(discord.ui.Modal):
 
         embed = discord.Embed(description=self.input.value, color=discord.Color.purple())
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.avatar.url)
-        await interaction.channel.send(embed=embed, view=ReplyView(embed, interaction.user.display_name))
+        await interaction.channel.send(embed=embed, view=ReplyView(embed, interaction.user))
         await interaction.response.defer(ephemeral=True)
 
         if last_prompt_message:
@@ -56,11 +56,11 @@ class RPModal(discord.ui.Modal):
 
 
 class ReplyModal(discord.ui.Modal):
-    def __init__(self, original_embed: discord.Embed, original_author: str):
+    def __init__(self, original_embed: discord.Embed, original_user: discord.User):
         super().__init__(title="RP返信")
         self.input = discord.ui.TextInput(label="返信内容", style=discord.TextStyle.short)
         self.original_embed = original_embed
-        self.original_author = original_author
+        self.original_user = original_user
         self.add_item(self.input)
 
     async def on_submit(self, interaction: discord.Interaction):
@@ -69,9 +69,19 @@ class ReplyModal(discord.ui.Modal):
             color=discord.Color.blue()
         )
         reply_embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.avatar.url)
-        reply_embed.add_field(name="返信先", value=f"{self.original_author}: {self.original_embed.description}", inline=False)
+        reply_embed.add_field(
+            name="返信先",
+            value=f"{self.original_user.display_name}: {self.original_embed.description}",
+            inline=False
+        )
 
-        await interaction.channel.send(embed=reply_embed)
+
+        await interaction.channel.send(
+            content=f"{self.original_user.mention}",
+            embed=reply_embed,
+            view=ReplyView(reply_embed, interaction.user)
+        )
+
         await interaction.response.defer(ephemeral=True)
 
 
@@ -84,14 +94,14 @@ class RPView(discord.ui.View):
         await interaction.response.send_modal(RPModal())
 
 class ReplyView(discord.ui.View):
-    def __init__(self, original_embed: discord.Embed, original_author: str):
+    def __init__(self, original_embed: discord.Embed, original_user: discord.User):
         super().__init__(timeout=None)
         self.original_embed = original_embed
-        self.original_author = original_author
+        self.original_user = original_user
 
     @discord.ui.button(label="返信する", style=discord.ButtonStyle.secondary, custom_id="replybutton")
     async def reply_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(ReplyModal(self.original_embed, self.original_author))
+        await interaction.response.send_modal(ReplyModal(self.original_embed, self.original_user))
 
 
 @bot.command()
