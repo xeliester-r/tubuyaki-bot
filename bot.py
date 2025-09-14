@@ -89,6 +89,7 @@ class ReplyModal(discord.ui.Modal):
         self.add_item(self.input)
 
     async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
         # 履歴記録
         # スレッド化の前に、親チャンネルを明示的に取得
         original_channel = interaction.channel.parent if isinstance(interaction.channel, discord.Thread) else interaction.channel
@@ -189,8 +190,7 @@ class ReplyModal(discord.ui.Modal):
             view=RPView(),
             allowed_mentions=discord.AllowedMentions.none()
         )
-        
-        await interaction.response.send_message(content="送ったよ！", ephemeral=True)
+    
 
 class RPView(discord.ui.View):
     def __init__(self):
