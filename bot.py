@@ -109,9 +109,9 @@ class ReplyModal(discord.ui.Modal):
         reply_count = len(reply_history[(channel_id, *pair)])
 
         # 色判定
-        if reply_count >= 10:
+        if reply_count >= 5:
             color = discord.Color.red()
-        elif reply_count >= 5:
+        elif reply_count >= 3:
             color = discord.Color.orange()
         else:
             color = discord.Color.blue()
@@ -191,7 +191,6 @@ class ReplyModal(discord.ui.Modal):
             view=RPView(),
             allowed_mentions=discord.AllowedMentions.none()
         )
-
 
 class RPView(discord.ui.View):
     def __init__(self):
