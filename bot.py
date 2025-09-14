@@ -175,20 +175,24 @@ class ReplyModal(discord.ui.Modal):
         await interaction.response.defer(ephemeral=True)
 
         # 案内メッセージ更新
-        original_channel = interaction.channel.parent if isinstance(interaction.channel, discord.Thread) else interaction.channel
-        # スレッド化後でも、案内メッセージは元のチャンネルに送る
-        if last_prompt_messages.get(original_channel.id):
+        # スレッド化の前に、元のチャンネルを記録しておく
+        original_channel = interaction.channel
+
+        # スレッド化条件の判定・実行
+        # スレッド化の有無に関係なく、案内メッセージは元のチャンネルに送る
+        target_channel = original_channel.parent if isinstance(original_channel, discord.Thread) else original_channel
+
+        if last_prompt_messages.get(target_channel.id):
             try:
-                await last_prompt_messages[original_channel.id].delete()
+                await last_prompt_messages[target_channel.id].delete()
             except discord.NotFound:
                 pass
 
-        last_prompt_messages[original_channel.id] = await original_channel.send(
+        last_prompt_messages[target_channel.id] = await target_channel.send(
             "今の気持ちや想い、少し語ってみませんか？",
             view=RPView(),
             allowed_mentions=discord.AllowedMentions.none()
         )
-
 
 
 class RPView(discord.ui.View):
