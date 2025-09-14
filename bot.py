@@ -5,6 +5,13 @@ from dotenv import load_dotenv
 from flask import Flask
 import threading
 
+from collections import defaultdict
+import time
+
+reply_history = defaultdict(list)  # key: (user1_id, user2_id), value: list of timestamps
+REPLY_WINDOW = 1200  # 秒（例：20分）
+REPLY_THRESHOLD = 5  # 回数（例：5回以上）
+
 # .envからトークンを読み込む
 load_dotenv()
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
@@ -65,26 +72,77 @@ class ReplyModal(discord.ui.Modal):
         self.add_item(self.input)
 
     async def on_submit(self, interaction: discord.Interaction):
+        # 履歴記録
+        pair = tuple(sorted([interaction.user.id, self.original_user.id]))
+        now = time.time()
+        reply_history[pair] = [t for t in reply_history[pair] if now - t < REPLY_WINDOW]
+        reply_history[pair].append(now)
+
+        reply_count = len(reply_history[pair])
+
+        # 色判定
+        if reply_count >= 10:
+            color = discord.Color.red()
+        elif reply_count >= 5:
+            color = discord.Color.orange()
+        else:
+            color = discord.Color.blue()
+        
         reply_embed = discord.Embed(
-            description=self.input.value,
-            color=discord.Color.blue()
+            description=f"🗨️ {self.original_user.display_name}: {self.original_embed.description}",
+            color=color
         )
         avatar_url = interaction.user.avatar.url if interaction.user.avatar else None
         reply_embed.set_author(name=interaction.user.display_name, icon_url=avatar_url)
+
         reply_embed.add_field(
-            name="返信先",
-            value=f"{self.original_user.display_name}: {self.original_embed.description}",
+            name="返信",
+            value=self.input.value,
             inline=False
         )
 
+        # 履歴記録
+        pair = tuple(sorted([interaction.user.id, self.original_user.id]))
+        now = time.time()
+        reply_history[pair] = [t for t in reply_history[pair] if now - t < REPLY_WINDOW]
+        reply_history[pair].append(now)
 
-        await interaction.channel.send(
-            content=f"{self.original_user.mention}",
-            embed=reply_embed,
-            view=ReplyView(reply_embed, interaction.user)
-        )
+        # 条件判定
+        should_thread = len(reply_history[pair]) >= REPLY_THRESHOLD
+
+        if should_thread:
+            thread = await interaction.channel.create_thread(
+                name=f"RP会話：{interaction.user.display_name}↔{self.original_user.display_name}",
+                type=discord.ChannelType.public_thread,
+                auto_archive_duration=60
+            )
+            await thread.send(
+                content=f"{self.original_user.mention}",
+                embed=reply_embed,
+                view=ReplyView(reply_embed, interaction.user)
+            )
+            await thread.add_user(self.original_user)
+            await thread.add_user(interaction.user)
+        else:
+            await interaction.channel.send(
+                content=f"{self.original_user.mention}",
+                embed=reply_embed,
+                view=ReplyView(reply_embed, interaction.user)
+            )
 
         await interaction.response.defer(ephemeral=True)
+        global last_prompt_message
+        if last_prompt_message:
+            try:
+                await last_prompt_message.delete()
+            except discord.NotFound:
+                pass
+
+        last_prompt_message = await interaction.channel.send(
+            "今の気持ちや想い、少し語ってみませんか？",
+            view=RPView(),
+            allowed_mentions=discord.AllowedMentions.none()
+        )
 
 
 class RPView(discord.ui.View):
