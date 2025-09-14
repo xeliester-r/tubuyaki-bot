@@ -90,7 +90,9 @@ class ReplyModal(discord.ui.Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         # 履歴記録
-        channel_id = interaction.channel.id
+        # スレッド化の前に、親チャンネルを明示的に取得
+        original_channel = interaction.channel.parent if isinstance(interaction.channel, discord.Thread) else interaction.channel
+        channel_id = original_channel.id  # ←履歴キーにも使う
         pair = tuple(sorted([interaction.user.id, self.original_user.id]))
         now = time.time()
         reply_history[(channel_id, *pair)] = [
@@ -173,10 +175,6 @@ class ReplyModal(discord.ui.Modal):
             await thread.add_user(interaction.user)
 
         await interaction.response.defer(ephemeral=True)
-
-        # 案内メッセージ更新
-        # スレッド化の前に、元のチャンネルを記録しておく
-        original_channel = interaction.channel
 
         # スレッド化条件の判定・実行
         # スレッド化の有無に関係なく、案内メッセージは元のチャンネルに送る
